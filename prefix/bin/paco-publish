@@ -1,0 +1,76 @@
+#!/bin/bash
+
+INCLUDE_ROOT=$(iscool-shell-config --shell-include)
+
+. "$INCLUDE_ROOT/options.sh"
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+
+PACO_ARCHIVE="$SCRIPT_DIR"/paco-archive
+PACO_UPLOAD="$SCRIPT_DIR"/paco-upload
+
+ARCHIVE_ARGS=()
+UPLOAD_ARGS=()
+
+set_root()
+{
+    ARCHIVE_ARGS+=("--root=$1")
+}
+
+register_option '--root=<path>' set_root "The root directory of the package."
+
+set_version()
+{
+    ARCHIVE_ARGS+=("--version=$1")
+}
+
+register_option '--version=<string>' set_version "The version of the package."
+
+set_name()
+{
+    ARCHIVE_ARGS+=("--name=$1")
+}
+
+register_option '--name=<string>' set_name "The name of the package." \
+                "Guessed from --root"
+
+set_flavor()
+{
+    UPLOAD_ARGS+=("--flavor=$1")
+}
+
+register_option '--flavor=<name>' set_flavor \
+                "The flavor where to categorize the the package." \
+                "$FLAVOR"
+
+set_platform()
+{
+    UPLOAD_ARGS+=("--platform=$1")
+}
+
+register_option '--platform=<name>' set_platform \
+                "The platform for which the package was built."
+
+disable_local()
+{
+    UPLOAD_ARGS+=("--disable-local")
+}
+
+register_option '--disable-local' disable_local \
+                "Disable copy in local repository cache."
+
+disable_remote()
+{
+    UPLOAD_ARGS+=("--disable-remote")
+}
+
+register_option '--disable-remote' disable_remote \
+                "Disable copy in remote repository."
+
+extract_parameters "$@"
+
+echo "$@"
+echo "${UPLOAD_ARGS[@]}"
+
+ARCHIVE=$($PACO_ARCHIVE "${ARCHIVE_ARGS[@]}")
+$PACO_UPLOAD --file="$ARCHIVE" "${UPLOAD_ARGS[@]}"

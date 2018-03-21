@@ -1,0 +1,46 @@
+#!/bin/bash
+
+INCLUDE_ROOT=$(iscool-shell-config --shell-include)
+
+. "$INCLUDE_ROOT/options.sh"
+
+ROOT=
+VERSION=
+
+set_root()
+{
+    ROOT="$1"
+}
+
+register_option '--root=<path>' set_root "The root directory of the package."
+
+set_version()
+{
+    VERSION=$(echo "$1" | tr '/' '-')
+}
+
+register_option '--version=<string>' set_version "The version of the package."
+
+set_name()
+{
+    NAME="$1"
+}
+
+register_option '--name=<string>' set_name "The name of the package." \
+                "Guessed from --root"
+
+extract_parameters "$@"
+
+check_option_is_set "--root" "$ROOT"
+check_option_is_set "--version" "$VERSION"
+
+if [ -z "$NAME" ]
+then
+    NAME="$(basename "$ROOT")"
+fi
+
+TARGET_FILE="${NAME}_${VERSION}.tar.gz"
+
+tar cfz "$TARGET_FILE" -C "$ROOT" .
+    
+echo "$TARGET_FILE"

@@ -1,0 +1,78 @@
+#!/bin/bash
+
+ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
+
+. "$ISCOOL_INCLUDE_ROOT/options.sh"
+
+INCLUDE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/s3.sh"
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/common.sh"
+
+FILE=
+FLAVOR=
+DISABLE_LOCAL=
+DISABLE_REMOTE=
+PLATFORM=
+
+set_file()
+{
+    FILE="$1"
+}
+
+register_option '--file=<path>' set_file "The path of the file to upload."
+
+set_flavor()
+{
+    FLAVOR="$1"
+}
+
+register_option '--flavor=<name>' set_flavor \
+                "The flavor where to categorize the the package." \
+                "$FLAVOR"
+
+set_platform()
+{
+    PLATFORM="$1"
+}
+
+register_option '--platform=<name>' set_platform \
+                "The platform for which the package was built."
+
+disable_local()
+{
+    DISABLE_LOCAL=1
+}
+
+register_option '--disable-local' disable_local \
+                "Disable copy in local repository cache."
+
+disable_remote()
+{
+    DISABLE_REMOTE=1
+}
+
+register_option '--disable-remote' disable_remote \
+                "Disable copy in remote repository."
+
+extract_parameters "$@"
+
+check_option_is_set "--file" "$FILE"
+check_option_is_set "--flavor" "$FLAVOR"
+check_option_is_set "--platform" "$PLATFORM"
+
+FILE_NAME=$(basename "$FILE")
+PROJECT_NAME=$(echo $FILE_NAME | sed 's/_[^_]\+$//')
+UPLOAD_PATH="$PROJECT_NAME/$PLATFORM/$FLAVOR/$FILE_NAME"
+
+if [ -z "$DISABLE_LOCAL" ]
+then
+    LOCAL_PATH="$PACO_LOCAL_CACHE/$(dirname "$UPLOAD_PATH")"
+    mkdir -p "$PACO_LOCAL_CACHE/$(dirname "$UPLOAD_PATH")"
+    cp "$FILE" "$LOCAL_PATH"
+fi
+
+if [ -z "$DISABLE_REMOTE" ]
+then 
+    s3_put "$FILE" "$UPLOAD_PATH"
+fi
