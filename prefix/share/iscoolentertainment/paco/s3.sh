@@ -28,3 +28,9 @@ s3_ls()
     s3cmd --config="$S3_CONFIG" \
           ls "$PACO_S3_BUCKET_ROOT/$1"
 }
+
+s3_rm()
+{
+    s3cmd --config="$S3_CONFIG" \
+          rm "$PACO_S3_BUCKET_ROOT/$1"
+}
