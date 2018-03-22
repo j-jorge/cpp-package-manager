@@ -69,8 +69,7 @@ register_option '--disable-remote' disable_remote \
 
 extract_parameters "$@"
 
-echo "$@"
-echo "${UPLOAD_ARGS[@]}"
-
 ARCHIVE=$($PACO_ARCHIVE "${ARCHIVE_ARGS[@]}")
 $PACO_UPLOAD --file="$ARCHIVE" "${UPLOAD_ARGS[@]}"
+
+rm "$ARCHIVE"
