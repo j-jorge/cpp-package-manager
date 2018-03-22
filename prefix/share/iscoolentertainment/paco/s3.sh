@@ -13,3 +13,18 @@ s3_put()
           --config="$S3_CONFIG" \
           put "$FILE" "$PACO_S3_BUCKET_ROOT/$BUCKET"
 }
+
+s3_get()
+{
+    BUCKET="$1"
+    FILE="$2"
+    
+    s3cmd --config="$S3_CONFIG" \
+          get "$PACO_S3_BUCKET_ROOT/$BUCKET" "$FILE"
+}
+
+s3_ls()
+{
+    s3cmd --config="$S3_CONFIG" \
+          ls "$PACO_S3_BUCKET_ROOT/$1"
+}

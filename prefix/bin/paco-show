@@ -1,0 +1,77 @@
+#!/bin/bash
+
+ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
+
+. "$ISCOOL_INCLUDE_ROOT/options.sh"
+. "$ISCOOL_INCLUDE_ROOT/platform.sh"
+
+INCLUDE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/s3.sh"
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/common.sh"
+
+FLAVOR=
+NAME=
+PLATFORM=
+VERSION=
+
+set_flavor()
+{
+    FLAVOR="$1"
+}
+
+register_option '--flavor=<name>' set_flavor \
+                "The flavor where to search the package."
+
+set_name()
+{
+    NAME="$1"
+}
+
+register_option '--name=<string>' set_name "The name of the package."
+
+set_platform()
+{
+    PLATFORM="$1"
+}
+
+register_option '--platform=<name>' set_platform \
+                "The platform for which the package was built."
+
+set_version()
+{
+    VERSION="$1"
+}
+
+register_option '--version=<string>' set_version "The version of the package."
+
+extract_parameters "$@"
+
+check_option_is_set "--flavor" "$FLAVOR"
+check_option_is_set "--name" "$NAME"
+check_option_is_set "--platform" "$PLATFORM"
+check_option_is_set "--version" "$VERSION"
+
+PACKAGE_PATH="$NAME/$PLATFORM/$FLAVOR/${NAME}_${VERSION}.tar.gz"
+
+LOCAL_PATH="$PACO_LOCAL_CACHE/$PACKAGE_PATH"
+
+if [ -f "$LOCAL_PATH" ]
+then
+    if is_osx
+    then
+        read -r _ _ _ _ SIZE DAY MONTH HOUR YEAR _ <<<"$(ls -lT "$LOCAL_PATH")"
+        read -r DAY TIME <<<"$(date -j -f '%d %b %H:%M:%S %Y' \
+                                    "$DAY $MONTH $HOUR $YEAR)" \
+                                    '+%Y-%m-%d %H:%M')"
+    else
+        read -r _ _ _ _ SIZE DAY TIME _ <<<"$(ls -l --time-style=long-iso \
+                                                 "$LOCAL_PATH")"
+    fi
+else
+    read -r DAY TIME SIZE _ <<<"$(s3_ls "$PACKAGE_PATH")"
+fi
+
+[ ! -z "$DAY" ] || exit 1
+
+echo "$DAY" "$TIME" "$SIZE"                           

@@ -1,0 +1,77 @@
+#!/bin/bash
+
+ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
+
+. "$ISCOOL_INCLUDE_ROOT/options.sh"
+
+INCLUDE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/s3.sh"
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/common.sh"
+
+FLAVOR=
+INSTALL_PREFIX=
+NAME=
+PLATFORM=
+VERSION=
+
+set_flavor()
+{
+    FLAVOR="$1"
+}
+
+register_option '--flavor=<name>' set_flavor \
+                "The flavor where to search the package."
+
+set_install_prefix()
+{
+    INSTALL_PREFIX="$1"
+}
+
+register_option '--prefix=<path>' set_install_prefix \
+                "The path where to extract the package."
+
+set_name()
+{
+    NAME="$1"
+}
+
+register_option '--name=<string>' set_name "The name of the package."
+
+set_platform()
+{
+    PLATFORM="$1"
+}
+
+register_option '--platform=<name>' set_platform \
+                "The platform for which the package was built."
+
+set_version()
+{
+    VERSION="$1"
+}
+
+register_option '--version=<string>' set_version "The version of the package."
+
+extract_parameters "$@"
+
+check_option_is_set "--flavor" "$FLAVOR"
+check_option_is_set "--name" "$NAME"
+check_option_is_set "--platform" "$PLATFORM"
+check_option_is_set "--prefix" "$INSTALL_PREFIX"
+check_option_is_set "--version" "$VERSION"
+
+PACKAGE_DIR="$NAME/$PLATFORM/$FLAVOR"
+PACKAGE_FILE_NAME="${NAME}_${VERSION}$PACO_PACKAGE_EXTENSION"
+
+LOCAL_DIR="$PACO_LOCAL_CACHE/$PACKAGE_DIR"
+LOCAL_PATH="$LOCAL_DIR/$PACKAGE_FILE_NAME"
+
+if [ ! -f "$LOCAL_PATH" ]
+then
+    mkdir -p "$LOCAL_DIR" || exit 1
+    s3_get "$PACKAGE_DIR/$PACKAGE_FILE_NAME" "$LOCAL_PATH" || exit 1
+fi
+
+mkdir -p "$INSTALL_PREFIX"
+tar xf "$LOCAL_PATH" -C "$INSTALL_PREFIX"
