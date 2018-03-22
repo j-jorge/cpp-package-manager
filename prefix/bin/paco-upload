@@ -62,17 +62,18 @@ check_option_is_set "--flavor" "$FLAVOR"
 check_option_is_set "--platform" "$PLATFORM"
 
 FILE_NAME=$(basename "$FILE")
-PROJECT_NAME=$(echo $FILE_NAME | sed 's/_[^_]\+$//')
-UPLOAD_PATH="$PROJECT_NAME/$PLATFORM/$FLAVOR/$FILE_NAME"
+PROJECT_NAME=${FILE_NAME/%_[^_]*/}
+UPLOAD_DIR="$PROJECT_NAME/$PLATFORM/$FLAVOR"
 
 if [ -z "$DISABLE_LOCAL" ]
 then
-    LOCAL_PATH="$PACO_LOCAL_CACHE/$(dirname "$UPLOAD_PATH")"
-    mkdir -p "$PACO_LOCAL_CACHE/$(dirname "$UPLOAD_PATH")"
+    LOCAL_PATH="$PACO_LOCAL_CACHE/$UPLOAD_DIR"
+    mkdir -p "$LOCAL_PATH"
     cp "$FILE" "$LOCAL_PATH"
 fi
 
 if [ -z "$DISABLE_REMOTE" ]
 then 
+    UPLOAD_PATH="$UPLOAD_DIR/$FILE_NAME"
     s3_put "$FILE" "$UPLOAD_PATH"
 fi

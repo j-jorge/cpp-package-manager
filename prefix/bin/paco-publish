@@ -40,8 +40,7 @@ set_flavor()
 }
 
 register_option '--flavor=<name>' set_flavor \
-                "The flavor where to categorize the the package." \
-                "$FLAVOR"
+                "The flavor where to categorize the package."
 
 set_platform()
 {
