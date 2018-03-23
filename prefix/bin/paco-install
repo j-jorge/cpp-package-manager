@@ -9,11 +9,29 @@ INCLUDE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 . "$INCLUDE_ROOT/share/iscoolentertainment/paco/s3.sh"
 . "$INCLUDE_ROOT/share/iscoolentertainment/paco/common.sh"
 
+DISABLE_LOCAL=
+DISABLE_REMOTE=
 FLAVOR=
 INSTALL_PREFIX=
 NAME=
 PLATFORM=
 VERSION=
+
+disable_local()
+{
+    DISABLE_LOCAL=1
+}
+
+register_option '--disable-local' disable_local \
+                "Disable the local repository cache."
+
+disable_remote()
+{
+    DISABLE_REMOTE=1
+}
+
+register_option '--disable-remote' disable_remote \
+                "Disable the remote repository."
 
 set_flavor()
 {
@@ -67,10 +85,15 @@ PACKAGE_FILE_NAME="${NAME}_${VERSION}$PACO_PACKAGE_EXTENSION"
 LOCAL_DIR="$PACO_LOCAL_CACHE/$PACKAGE_DIR"
 LOCAL_PATH="$LOCAL_DIR/$PACKAGE_FILE_NAME"
 
-if [ ! -f "$LOCAL_PATH" ]
+if [ ! -f "$LOCAL_PATH" ] || [ ! -z "$DISABLE_LOCAL" ]
 then
-    mkdir -p "$LOCAL_DIR" || exit 1
-    s3_get "$PACKAGE_DIR/$PACKAGE_FILE_NAME" "$LOCAL_PATH" || exit 1
+    if [ -z "$DISABLE_REMOTE" ]
+    then
+        mkdir -p "$LOCAL_DIR" || exit 1
+        s3_get "$PACKAGE_DIR/$PACKAGE_FILE_NAME" "$LOCAL_PATH" || exit 1
+    else
+        exit 1
+    fi
 fi
 
 mkdir -p "$INSTALL_PREFIX"
