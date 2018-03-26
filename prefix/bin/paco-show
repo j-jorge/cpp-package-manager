@@ -76,11 +76,12 @@ LOCAL_PATH="$PACO_LOCAL_CACHE/$PACKAGE_PATH"
 
 if [ -z "$DISABLE_LOCAL" ] && [ -f "$LOCAL_PATH" ]
 then
-    if is_osx
+    if is_osx && ! ( ls --version > /dev/null 2> /dev/null )
     then
-        read -r _ _ _ _ SIZE DAY MONTH HOUR YEAR _ <<<"$(ls -lT "$LOCAL_PATH")"
-        read -r DAY TIME <<<"$(date -j -f '%d %b %H:%M:%S %Y' \
-                                    "$DAY $MONTH $HOUR $YEAR)" \
+        read -r _ _ _ _ SIZE MONTH DAY HOUR YEAR _ \
+             <<<"$(LANG=en ls -lT "$LOCAL_PATH")"
+        read -r DAY TIME <<<"$(date -j -f '%b %d %H:%M:%S %Y' \
+                                    "$MONTH $DAY $HOUR $YEAR" \
                                     '+%Y-%m-%d %H:%M')"
     else
         read -r _ _ _ _ SIZE DAY TIME _ <<<"$(ls -l --time-style=long-iso \
