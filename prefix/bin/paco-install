@@ -92,6 +92,7 @@ then
         mkdir -p "$LOCAL_DIR" || exit 1
         s3_get "$PACKAGE_DIR/$PACKAGE_FILE_NAME" "$LOCAL_PATH" || exit 1
     else
+        printf "Cannot find package.\n" >&2
         exit 1
     fi
 fi
