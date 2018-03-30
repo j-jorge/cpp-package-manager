@@ -4,22 +4,18 @@ ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
 
 . "$ISCOOL_INCLUDE_ROOT/options.sh"
 
-INCLUDE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+INCLUDE_ROOT="$SCRIPT_DIR"/..
 
 . "$INCLUDE_ROOT/share/iscoolentertainment/paco/s3.sh"
 . "$INCLUDE_ROOT/share/iscoolentertainment/paco/common.sh"
 
-DISABLE_LOCAL=
-DISABLE_REMOTE=
-FLAVOR=
+PACO_SHOW_ARGS=()
 INSTALL_PREFIX=
-NAME=
-PLATFORM=
-VERSION=
 
 disable_local()
 {
-    DISABLE_LOCAL=1
+    PACO_SHOW_ARGS+=("--disable-local")
 }
 
 register_option '--disable-local' disable_local \
@@ -27,7 +23,7 @@ register_option '--disable-local' disable_local \
 
 disable_remote()
 {
-    DISABLE_REMOTE=1
+    PACO_SHOW_ARGS+=("--disable-remote")
 }
 
 register_option '--disable-remote' disable_remote \
@@ -35,7 +31,7 @@ register_option '--disable-remote' disable_remote \
 
 set_flavor()
 {
-    FLAVOR="$1"
+    PACO_SHOW_ARGS+=("--flavor=$1")
 }
 
 register_option '--flavor=<name>' set_flavor \
@@ -51,14 +47,14 @@ register_option '--prefix=<path>' set_install_prefix \
 
 set_name()
 {
-    NAME="$1"
+    PACO_SHOW_ARGS+=("--name=$1")
 }
 
 register_option '--name=<string>' set_name "The name of the package."
 
 set_platform()
 {
-    PLATFORM="$1"
+    PACO_SHOW_ARGS+=("--platform=$1")
 }
 
 register_option '--platform=<name>' set_platform \
@@ -66,36 +62,32 @@ register_option '--platform=<name>' set_platform \
 
 set_version()
 {
-    VERSION="$1"
+    PACO_SHOW_ARGS+=("--version=$1")
 }
 
 register_option '--version=<string>' set_version "The version of the package."
 
 extract_parameters "$@"
 
-check_option_is_set "--flavor" "$FLAVOR"
-check_option_is_set "--name" "$NAME"
-check_option_is_set "--platform" "$PLATFORM"
+
 check_option_is_set "--prefix" "$INSTALL_PREFIX"
-check_option_is_set "--version" "$VERSION"
 
-PACKAGE_DIR="$NAME/$PLATFORM/$FLAVOR"
-PACKAGE_FILE_NAME="${NAME}_${VERSION}$PACO_PACKAGE_EXTENSION"
+IFS=$'\n' read -d '' -r PACKAGE_STATUS LOCAL_PACKAGE_PATH REMOTE_PACKAGE_PATH \
+   <<<"$("$SCRIPT_DIR"/paco-show "${PACO_SHOW_ARGS[@]}" \
+            | cut -d: -f2- \
+            | cut -c 2-)"
 
-LOCAL_DIR="$PACO_LOCAL_CACHE/$PACKAGE_DIR"
-LOCAL_PATH="$LOCAL_DIR/$PACKAGE_FILE_NAME"
-
-if [ ! -f "$LOCAL_PATH" ] || [ ! -z "$DISABLE_LOCAL" ]
+if [ "$PACKAGE_STATUS" = "unknown" ]
 then
-    if [ -z "$DISABLE_REMOTE" ]
-    then
-        mkdir -p "$LOCAL_DIR" || exit 1
-        s3_get "$PACKAGE_DIR/$PACKAGE_FILE_NAME" "$LOCAL_PATH" || exit 1
-    else
-        printf "Cannot find package.\n" >&2
-        exit 1
-    fi
+    printf "Cannot find package.\n" >&2
+    exit 1
+fi
+
+if [ "$PACKAGE_STATUS" != "up-to-date" ]
+then
+    mkdir -p "$(dirname "$LOCAL_PACKAGE_PATH")" || exit 1
+    s3_get "$REMOTE_PACKAGE_PATH" "$LOCAL_PACKAGE_PATH" || exit 1
 fi
 
 mkdir -p "$INSTALL_PREFIX"
-tar xf "$LOCAL_PATH" -C "$INSTALL_PREFIX"
+tar xf "$LOCAL_PACKAGE_PATH" -C "$INSTALL_PREFIX"

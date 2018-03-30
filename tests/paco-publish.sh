@@ -29,13 +29,14 @@ paco-publish --root="$ROOT" \
              --platform="$PLATFORM" \
              --flavor="$FLAVOR"
 
-paco-show  --disable-remote \
-           --platform="$PLATFORM" \
-           --name="$NAME" \
-           --flavor="$FLAVOR" \
-           --version="$VERSION" \
-           > /dev/null \
-           || test_failed $LINENO
+PACKAGE_STATUS="$(paco-show  --disable-remote \
+                            --platform="$PLATFORM" \
+                            --name="$NAME" \
+                            --flavor="$FLAVOR" \
+                            --version="$VERSION" \
+                     | head -n 1)"               
+
+[ "$PACKAGE_STATUS" = "Status: up-to-date" ] || test_failed $LINENO
 
 TARGET=$(make_temporary_directory)
 

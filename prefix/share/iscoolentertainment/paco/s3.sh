@@ -20,6 +20,7 @@ s3_get()
     FILE="$2"
     
     s3cmd --config="$S3_CONFIG" \
+          --force \
           get "$PACO_S3_BUCKET_ROOT/$BUCKET" "$FILE"
 }
 
@@ -27,6 +28,12 @@ s3_ls()
 {
     s3cmd --config="$S3_CONFIG" \
           ls "$PACO_S3_BUCKET_ROOT/$1"
+}
+
+s3_info()
+{
+    s3cmd --config="$S3_CONFIG" \
+          info "$PACO_S3_BUCKET_ROOT/$1" 2>/dev/null
 }
 
 s3_rm()

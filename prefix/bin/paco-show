@@ -3,7 +3,7 @@
 ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
 
 . "$ISCOOL_INCLUDE_ROOT/options.sh"
-. "$ISCOOL_INCLUDE_ROOT/platform.sh"
+. "$ISCOOL_INCLUDE_ROOT/md5.sh"
 
 INCLUDE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
@@ -71,27 +71,41 @@ check_option_is_set "--platform" "$PLATFORM"
 check_option_is_set "--version" "$VERSION"
 
 PACKAGE_PATH="$NAME/$PLATFORM/$FLAVOR/${NAME}_${VERSION}.tar.gz"
-
 LOCAL_PATH="$PACO_LOCAL_CACHE/$PACKAGE_PATH"
 
 if [ -z "$DISABLE_LOCAL" ] && [ -f "$LOCAL_PATH" ]
 then
-    if is_osx && ! ( ls --version > /dev/null 2> /dev/null )
-    then
-        read -r _ _ _ _ SIZE MONTH DAY HOUR YEAR _ \
-             <<<"$(LANG=en ls -lT "$LOCAL_PATH")"
-        read -r DAY TIME <<<"$(date -j -f '%b %d %H:%M:%S %Y' \
-                                    "$MONTH $DAY $HOUR $YEAR" \
-                                    '+%Y-%m-%d %H:%M')"
-    else
-        read -r _ _ _ _ SIZE DAY TIME _ <<<"$(ls -l --time-style=long-iso \
-                                                 "$LOCAL_PATH")"
-    fi
-elif [ -z "$DISABLE_REMOTE" ]
-then
-    read -r DAY TIME SIZE _ <<<"$(s3_ls "$PACKAGE_PATH")"
+    LOCAL_MD5="$(md5_sum "$LOCAL_PATH")"
 fi
 
-[ ! -z "$DAY" ] || exit 1
+if [ -z "$DISABLE_REMOTE" ]
+then
+    REMOTE_MD5="$(s3_info "$PACKAGE_PATH" \
+                      | grep 'MD5 sum' \
+                      | cut -d: -f2 \
+                      | tr -d ' ')"
+fi
 
-echo "$DAY" "$TIME" "$SIZE"                           
+if [ -n "$LOCAL_MD5" ]
+then
+    if [ -n "$REMOTE_MD5" ]
+    then
+        if [ "$REMOTE_MD5" != "$LOCAL_MD5" ]
+        then
+            STATUS=update
+        else
+            STATUS=up-to-date
+        fi
+    else
+        STATUS=up-to-date
+    fi
+elif [ -n "$REMOTE_MD5" ]
+then
+    STATUS=update
+else
+    STATUS=unknown
+fi
+
+printf "Status: %s\n" "$STATUS"
+printf "Local path: %s\n" "$LOCAL_PATH"
+printf "Remote path: %s\n" "$PACKAGE_PATH"

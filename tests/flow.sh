@@ -35,13 +35,14 @@ paco-upload --file="$ARCHIVE" \
 
 rm -f "$ARCHIVE"
 
-paco-show  --disable-remote \
-           --platform="$PLATFORM" \
-           --name="$NAME" \
-           --flavor="$FLAVOR" \
-           --version="$VERSION" \
-           > /dev/null \
-           || test_failed $LINENO
+PACKAGE_STATUS="$(paco-show  --disable-remote \
+                            --platform="$PLATFORM" \
+                            --name="$NAME" \
+                            --flavor="$FLAVOR" \
+                            --version="$VERSION" \
+                     | head -n 1)"               
+
+[ "$PACKAGE_STATUS" = "Status: up-to-date" ] || test_failed $LINENO
 
 TARGET=$(make_temporary_directory)
 
