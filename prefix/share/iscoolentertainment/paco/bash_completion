@@ -1,0 +1,19 @@
+#!/bin/bash
+
+_paco_help()
+{
+    local cur
+    COMPREPLY=()
+
+    cur=${COMP_WORDS[COMP_CWORD]}
+
+    local OPTIONS
+
+    OPTIONS="$($1 --help \
+                  | grep '^[[:blank:]]*--' \
+                  | sed 's/[^-]*\(-[^[:blank:]<]*\).*/\1/')"
+    COMPREPLY=( $(compgen -W "$OPTIONS" -- "$cur") )
+}
+
+PACO_TOOLS=($(compgen -c paco-))
+complete -F _paco_help "${PACO_TOOLS[@]}"
