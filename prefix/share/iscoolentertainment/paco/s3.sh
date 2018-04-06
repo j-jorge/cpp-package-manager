@@ -26,8 +26,13 @@ s3_get()
 
 s3_ls()
 {
+    local P="$1"
+    shift
+    
     s3cmd --config="$S3_CONFIG" \
-          ls "$PACO_S3_BUCKET_ROOT/$1"
+          ls "$PACO_S3_BUCKET_ROOT/$P" \
+          "$@" \
+        | sed "s|$PACO_S3_BUCKET_ROOT/||"
 }
 
 s3_info()

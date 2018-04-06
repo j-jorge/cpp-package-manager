@@ -1,0 +1,158 @@
+#!/bin/bash
+
+ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
+
+. "$ISCOOL_INCLUDE_ROOT/colors.sh"
+. "$ISCOOL_INCLUDE_ROOT/options.sh"
+. "$ISCOOL_INCLUDE_ROOT/platform.sh"
+
+INCLUDE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/s3.sh"
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/common.sh"
+
+DISABLE_LOCAL=
+DISABLE_REMOTE=
+FLAVOR="*"
+NAME="*"
+PLATFORM="*"
+VERSION="*"
+
+disable_local()
+{
+    DISABLE_LOCAL=1
+}
+
+register_option '--disable-local' disable_local \
+                "Disable the local repository cache."
+
+disable_remote()
+{
+    DISABLE_REMOTE=1
+}
+
+register_option '--disable-remote' disable_remote \
+                "Disable the remote repository."
+
+set_flavor()
+{
+    FLAVOR="$1"
+}
+
+register_option '--flavor=<name>' set_flavor \
+                "The flavor where to search the package."
+
+set_name()
+{
+    NAME="$1"
+}
+
+register_option '--name=<string>' set_name "The name of the package."
+
+set_platform()
+{
+    PLATFORM="$1"
+}
+
+register_option '--platform=<name>' set_platform \
+                "The platform for which the package was built."
+
+set_version()
+{
+    VERSION="$1"
+}
+
+register_option '--version=<string>' set_version "The version of the package."
+
+extract_parameters "$@"
+
+fields_match_request()
+{
+    [[ "$1" == $NAME ]] \
+        && [[ "$2" == $PLATFORM ]] \
+        && [[ "$3" == $FLAVOR ]] \
+        && [[ "$4" == $VERSION ]]
+}
+
+format_output()
+{
+    local LOCATION="$1"
+    shift
+    
+    local LISTED_NAME
+    local LISTED_PLATFORM
+    local LISTED_FLAVOR
+    local FILE_NAME
+    
+    for P in "$@"
+    do
+        IFS=/ read -r LISTED_NAME LISTED_PLATFORM LISTED_FLAVOR FILE_NAME \
+           <<<"$P"
+        
+        local LISTED_VERSION
+        LISTED_VERSION="$(basename "$FILE_NAME" "$PACO_PACKAGE_EXTENSION" \
+                             | cut -d_ -f2)"
+
+        if fields_match_request "$LISTED_NAME" "$LISTED_PLATFORM" \
+                                "$LISTED_FLAVOR" "$LISTED_VERSION"
+        then
+            printf "%s --name=%s --platform=%s --flavor=%s --version=%s\n" \
+                   "$LOCATION" \
+                   "$LISTED_NAME" "$LISTED_PLATFORM" \
+                   "$LISTED_FLAVOR" "$LISTED_VERSION"
+        fi
+    done \
+        | sort
+}
+
+list_local_packages()
+{
+    local PACKAGE_PATH="$NAME/$PLATFORM/$FLAVOR/${NAME}_${VERSION}.tar.gz"
+
+    pushd "$PACO_LOCAL_CACHE" > /dev/null
+    format_output "L." $(ls $PACKAGE_PATH)
+    popd > /dev/null
+}
+
+list_remote_packages()
+{
+    format_output ".R" $(s3_ls "" --recursive \
+                          | tr -s ' ' \
+                          | cut -d' ' -f4)
+}
+
+(
+    [ -n "$DISABLE_LOCAL" ] || list_local_packages
+    [ -n "$DISABLE_REMOTE" ] || list_remote_packages
+) | sed "s/ /"$'\t'"/" \
+    | awk -F $'\t' '{
+
+    current_location = $1
+    old_location = ".."
+
+    if ( $2 in locations )
+        old_location = locations[ $2 ]
+
+    L = substr( old_location, 1, 1 )
+    current_L = substr( current_location, 1, 1 )
+
+    R = substr( old_location, 2, 1 )
+    current_R = substr( current_location, 2, 1 )
+
+    if ( L == "." )
+        L = current_L
+
+    if ( R == "." )
+        R = current_R
+    
+    locations[ $2 ] = L R
+}
+END {
+    for ( k in locations )
+        printf( "%s %s\n", locations[ k ], k )
+}' \
+    | while read -r LINE
+do
+    echo -e "$(echo "$LINE" | sed "s|^|\\$green|;s|\$|\\$term_color|;s|=|=\\$yellow_bold|g;s| |\\$term_color |g")"
+done
+
