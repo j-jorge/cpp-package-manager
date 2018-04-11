@@ -75,7 +75,8 @@ check_option_is_set "--prefix" "$INSTALL_PREFIX"
 IFS=$'\n' read -d '' -r PACKAGE_STATUS LOCAL_PACKAGE_PATH REMOTE_PACKAGE_PATH \
    <<<"$("$SCRIPT_DIR"/paco-show "${PACO_SHOW_ARGS[@]}" \
             | cut -d: -f2- \
-            | cut -c 2-)"
+            | cut -c 2- )" \
+    || true
 
 if [ "$PACKAGE_STATUS" = "unknown" ]
 then
