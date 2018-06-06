@@ -123,7 +123,7 @@ IFS=$'\n' read -d '' -r PACKAGE_STATUS LOCAL_PACKAGE_PATH REMOTE_PACKAGE_PATH \
 
 if [ "$PACKAGE_STATUS" = "unknown" ]
 then
-    printf "Cannot find package.\n" >&2
+    printf "Cannot find package '%s' in version %s.\n" "$NAME" "$VERSION" >&2
     exit 1
 fi
 
