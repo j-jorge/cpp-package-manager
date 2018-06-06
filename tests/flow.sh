@@ -16,6 +16,8 @@ echo 2 > "$ROOT/file"
 mkdir "$ROOT/dir1"
 mkdir "$ROOT/dir2"
 echo 3 > "$ROOT/dir2/file"
+mkdir -p "$ROOT/dir3/subdir"
+echo 4 > "$ROOT/dir3/subdir/file"
 
 VERSION=flow-test-version
 FLAVOR=flow-test-flavor
@@ -52,7 +54,31 @@ paco-install --disable-remote \
              --flavor="$FLAVOR" \
              --version="$VERSION" \
              --prefix="$TARGET"
-           
-diff --brief --recursive "$ROOT" "$TARGET" >/dev/null || test_failed $LINENO
+
+RELATIVE_PATH_BEGIN=$(( ${#ROOT} + 1 ))
+
+find "$ROOT" -mindepth 1 \
+    | while read -r P
+do
+    RELATIVE_PATH=${P:$RELATIVE_PATH_BEGIN}
+    
+    (
+        if [ -f "$P" ]
+        then
+            diff --brief "$P" "$TARGET/$RELATIVE_PATH" > /dev/null
+        else
+            [ -d "$TARGET/$RELATIVE_PATH" ]
+        fi
+    ) || (
+        printf "'%s' and '%s' do not match.\n" "$P" "$TARGET/$RELATIVE_PATH"
+        test_failed $LINENO
+    )
+done
+
+paco-uninstall --name="$NAME" \
+               --prefix="$TARGET"
+
+REMAINING_FILES="$(find "$TARGET" -mindepth 1 -maxdepth 1 | wc -l)"
+[ "$REMAINING_FILES" -eq 0 ] || test_failed $LINENO
 
 test_end

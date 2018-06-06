@@ -1,0 +1,67 @@
+#!/bin/bash
+
+ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
+
+. "$ISCOOL_INCLUDE_ROOT/options.sh"
+
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+INCLUDE_ROOT="$SCRIPT_DIR"/..
+
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/s3.sh"
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/common.sh"
+
+INSTALL_PREFIX=
+NAME=
+
+set_install_prefix()
+{
+    INSTALL_PREFIX="$1"
+}
+
+register_option '--prefix=<path>' set_install_prefix \
+                "The path where the package is installed."
+
+set_name()
+{
+    NAME="$1"
+}
+
+register_option '--name=<string>' set_name "The name of the package."
+
+extract_parameters "$@"
+
+check_option_is_set "--prefix" "$INSTALL_PREFIX"
+check_option_is_set "--name" "$NAME"
+
+VERSION_FILE="$(install_metadata_file "$INSTALL_PREFIX" "$NAME")"
+
+rm -f "$VERSION_FILE"
+
+MANIFEST="$(install_manifest_file "$INSTALL_PREFIX" "$NAME")"
+
+[ -f "$MANIFEST" ] || exit 0
+
+DIRECTORIES=()
+FILES=()
+
+while read -r P
+do
+    FULL_PATH="$INSTALL_PREFIX/$P"
+    
+    if [ -d "$FULL_PATH" ]
+    then
+        DIRECTORIES+=("$FULL_PATH")
+    else
+        FILES+=("$FULL_PATH")
+    fi
+done < "$MANIFEST"
+
+if [ ${#FILES[@]} -ne 0 ]
+then
+   rm -f "${FILES[@]}"
+fi
+
+rm -f "$MANIFEST"
+
+find "$INSTALL_PREFIX/" -mindepth 1 -type d -empty -delete
+

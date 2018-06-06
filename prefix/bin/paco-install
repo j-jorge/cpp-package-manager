@@ -12,6 +12,9 @@ INCLUDE_ROOT="$SCRIPT_DIR"/..
 
 PACO_SHOW_ARGS=()
 INSTALL_PREFIX=
+NAME=
+FORCE=
+VERSION=
 
 disable_local()
 {
@@ -37,6 +40,14 @@ set_flavor()
 register_option '--flavor=<name>' set_flavor \
                 "The flavor where to search the package."
 
+set_force()
+{
+    FORCE=1
+}
+
+register_option '--force' set_force \
+                "Install the package even if it is already installed."
+
 set_install_prefix()
 {
     INSTALL_PREFIX="$1"
@@ -47,6 +58,7 @@ register_option '--prefix=<path>' set_install_prefix \
 
 set_name()
 {
+    NAME="$1"
     PACO_SHOW_ARGS+=("--name=$1")
 }
 
@@ -62,6 +74,7 @@ register_option '--platform=<name>' set_platform \
 
 set_version()
 {
+    VERSION="$1"
     PACO_SHOW_ARGS+=("--version=$1")
 }
 
@@ -69,8 +82,38 @@ register_option '--version=<string>' set_version "The version of the package."
 
 extract_parameters "$@"
 
-
 check_option_is_set "--prefix" "$INSTALL_PREFIX"
+
+installed_package_version()
+{
+    local VERSION_FILE
+    VERSION_FILE="$(install_metadata_file "$INSTALL_PREFIX" "$NAME")"
+    
+    if [ -f "$VERSION_FILE" ]
+    then
+        grep '^Version:' "$VERSION_FILE" \
+            | cut -d: -f2-
+    fi
+}
+
+check_current_installed_version()
+{
+    INSTALLED_PACKAGE_VERSION="$(installed_package_version)"
+
+    if [ "$INSTALLED_PACKAGE_VERSION" = "$VERSION" ]
+    then
+        [ -z "$FORCE" ] || return
+        printf "Package '%s' is already installed.\n" "$NAME"
+        exit 0
+    elif [ -n "$INSTALLED_PACKAGE_VERSION" ]
+    then
+        printf "Uninstalling version '%s' of package '%s'.\n" \
+               "$INSTALLED_PACKAGE_VERSION" "$NAME"
+        "$SCRIPT_DIR/paco-uninstall" --name="$NAME" --prefix="$INSTALL_PREFIX"
+    fi
+}
+
+check_current_installed_version
 
 IFS=$'\n' read -d '' -r PACKAGE_STATUS LOCAL_PACKAGE_PATH REMOTE_PACKAGE_PATH \
    <<<"$("$SCRIPT_DIR"/paco-show "${PACO_SHOW_ARGS[@]}" \
@@ -90,5 +133,4 @@ then
     s3_get "$REMOTE_PACKAGE_PATH" "$LOCAL_PACKAGE_PATH" || exit 1
 fi
 
-mkdir -p "$INSTALL_PREFIX"
 tar xf "$LOCAL_PACKAGE_PATH" -C "$INSTALL_PREFIX"

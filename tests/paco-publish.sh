@@ -29,7 +29,7 @@ paco-publish --root="$ROOT" \
              --platform="$PLATFORM" \
              --flavor="$FLAVOR"
 
-PACKAGE_STATUS="$(paco-show  --disable-remote \
+PACKAGE_STATUS="$(paco-show --disable-remote \
                             --platform="$PLATFORM" \
                             --name="$NAME" \
                             --flavor="$FLAVOR" \
@@ -47,6 +47,24 @@ paco-install --disable-remote \
              --version="$VERSION" \
              --prefix="$TARGET"
            
-diff --brief --recursive "$ROOT" "$TARGET" >/dev/null || test_failed $LINENO
+RELATIVE_PATH_BEGIN=$(( ${#ROOT} + 1 ))
+
+find "$ROOT" -mindepth 1 \
+    | while read -r P
+do
+    RELATIVE_PATH=${P:$RELATIVE_PATH_BEGIN}
+    
+    (
+        if [ -f "$P" ]
+        then
+            diff --brief "$P" "$TARGET/$RELATIVE_PATH" > /dev/null
+        else
+            [ -d "$TARGET/$RELATIVE_PATH" ]
+        fi
+    ) || (
+        printf "'%s' and '%s' do not match.\n" "$P" "$TARGET/$RELATIVE_PATH"
+        test_failed $LINENO
+    )
+done
 
 test_end

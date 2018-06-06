@@ -43,8 +43,21 @@ then
     NAME="$(basename "$ROOT")"
 fi
 
+MANIFEST="$(install_manifest_file "$ROOT" "$NAME")"
+mkdir -p "$(dirname "$MANIFEST")"
+
+METADATA="$(install_metadata_file "$ROOT" "$NAME")"
+mkdir -p "$(dirname "$METADATA")"
+
+(
+    cd "$ROOT"
+
+    printf "Version:%s\n" "$VERSION" > "$METADATA"
+    find . -type f -o -type l > "$MANIFEST"
+)
+
 TARGET_FILE="${NAME}_${VERSION}$PACO_PACKAGE_EXTENSION"
 
 tar cfz "$TARGET_FILE" -C "$ROOT" .
-    
+
 echo "$TARGET_FILE"
