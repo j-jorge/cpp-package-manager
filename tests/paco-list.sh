@@ -33,8 +33,7 @@ LIST="$(paco-list --disable-remote \
                   --platform="$PLATFORM" \
                   --name="$NAME" \
                   --flavor="$FLAVOR" \
-                  --version="$VERSION" \
-           | rm-colors)"
+                  --version="$VERSION")"
 
 
 EXPECTED="L. --name=$NAME --platform=$PLATFORM --flavor=$FLAVOR --version=$VERSION"

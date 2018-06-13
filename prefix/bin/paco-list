@@ -151,8 +151,15 @@ END {
     for ( k in locations )
         printf( "%s %s\n", locations[ k ], k )
 }' \
-    | while read -r LINE
-do
-    echo -e "$(echo "$LINE" | sed "s|^|\\$green|;s|\$|\\$term_color|;s|=|=\\$yellow_bold|g;s| |\\$term_color |g")"
-done
+    | (
+    if [ -t 1 ]
+    then
+        while read -r LINE
+        do
+            echo -e "$(echo "$LINE" | sed "s|^|\\$green|;s|\$|\\$term_color|;s|=|=\\$yellow_bold|g;s| |\\$term_color |g")"
+        done
+    else
+        cat
+    fi
+)
 
