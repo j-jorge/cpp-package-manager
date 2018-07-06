@@ -110,7 +110,7 @@ list_local_packages()
     local PACKAGE_PATH="$NAME/$PLATFORM/$FLAVOR/${NAME}_${VERSION}.tar.gz"
 
     pushd "$PACO_LOCAL_CACHE" > /dev/null
-    format_output "L." $(ls $PACKAGE_PATH)
+    format_output "L." $(ls $PACKAGE_PATH 2>/dev/null)
     popd > /dev/null
 }
 
