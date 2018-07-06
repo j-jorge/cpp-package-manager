@@ -1,0 +1,46 @@
+#!/bin/bash
+
+ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
+
+. "$ISCOOL_INCLUDE_ROOT/colors.sh"
+. "$ISCOOL_INCLUDE_ROOT/options.sh"
+
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+INCLUDE_ROOT="$SCRIPT_DIR"/..
+
+. "$INCLUDE_ROOT/share/iscoolentertainment/paco/common.sh"
+
+export PROGRAM_DESCRIPTION="Display information about the installed package."
+
+INSTALL_PREFIX=
+NAME=
+
+set_install_prefix()
+{
+    INSTALL_PREFIX="$1"
+}
+
+register_option '--prefix=<path>' set_install_prefix \
+                "The path where to search for the package."
+
+set_name()
+{
+    NAME="$1"
+    PACO_SHOW_ARGS+=("--name=$1")
+}
+
+register_option '--name=<string>' set_name "The name of the package."
+
+extract_parameters "$@"
+
+check_option_is_set "--prefix" "$INSTALL_PREFIX"
+check_option_is_set "--name" "NAME"
+
+VERSION_FILE="$(install_metadata_file "$INSTALL_PREFIX" "$NAME")"
+
+if [ ! -f "$VERSION_FILE" ]
+then
+    printf "Package '%s' is not installed.\n" "$NAME"
+else
+    cat "$VERSION_FILE"
+fi

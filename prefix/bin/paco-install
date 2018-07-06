@@ -86,14 +86,9 @@ check_option_is_set "--prefix" "$INSTALL_PREFIX"
 
 installed_package_version()
 {
-    local VERSION_FILE
-    VERSION_FILE="$(install_metadata_file "$INSTALL_PREFIX" "$NAME")"
-    
-    if [ -f "$VERSION_FILE" ]
-    then
-        grep '^Version:' "$VERSION_FILE" \
-            | cut -d: -f2-
-    fi
+    "$SCRIPT_DIR"/paco-info --name "$NAME" --prefix "$INSTALL_PREFIX" \
+        | grep '^Version:' \
+        | cut -d: -f2-
 }
 
 check_current_installed_version()
