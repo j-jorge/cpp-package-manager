@@ -1,0 +1,108 @@
+#!/bin/bash
+
+ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
+
+. "$ISCOOL_INCLUDE_ROOT/colors.sh"
+. "$ISCOOL_INCLUDE_ROOT/options.sh"
+. "$ISCOOL_INCLUDE_ROOT/temporaries.sh"
+
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+
+export PROGRAM_DESCRIPTION="Delete all packages matching the given criteria."
+
+PACO_LIST_ARGS=()
+PACO_DELETE_ARGS=()
+
+add_paco_list_arguments()
+{
+    PACO_LIST_ARGS+=("$@")
+}
+
+add_paco_delete_arguments()
+{
+    PACO_DELETE_ARGS+=("$@")
+}
+
+add_paco_list_and_delete_arguments()
+{
+    add_paco_list_arguments "$@"
+    add_paco_delete_arguments "$@"
+}
+
+disable_local()
+{
+    add_paco_list_and_delete_arguments "--disable-local"
+}
+
+register_option '--disable-local' disable_local \
+                "Disable the local repository cache."
+
+disable_remote()
+{
+    add_paco_list_and_delete_arguments "--disable-remote"
+}
+
+register_option '--disable-remote' disable_remote \
+                "Disable the remote repository."
+
+set_flavor()
+{
+    add_paco_list_arguments --flavor "$1"
+}
+
+register_option '--flavor=<name>' set_flavor \
+                "The flavor where to search the package."
+
+set_name()
+{
+    add_paco_list_arguments --name "$1"
+}
+
+register_option '--name=<string>' set_name "The name of the package."
+
+set_platform()
+{
+    add_paco_list_arguments --platform "$1"
+}
+
+register_option '--platform=<name>' set_platform \
+                "The platform for which the package was built."
+
+set_version()
+{
+    add_paco_list_arguments --version "$1"
+}
+
+register_option '--version=<string>' set_version "The version of the package."
+
+extract_parameters "$@"
+
+delete_packages_in_file()
+{
+    while read -r _ ARGS
+    do
+        "$SCRIPT_DIR"/paco-delete "${PACO_DELETE_ARGS[@]}" $ARGS
+    done < "$1"
+}
+
+ARG_LIST_FILE="$(make_temporary_file)"
+
+"$SCRIPT_DIR"/paco-list "${PACO_LIST_ARGS[@]}" \
+    | tee "$ARG_LIST_FILE" \
+    | sed "s|^|\\$green|;s|\$|\\$term_color|;s|=|=\\$yellow_bold|g;s| |\\$term_color |g" \
+    | while read -r LINE
+do
+    echo -e "$LINE"
+done
+
+[ -s "$ARG_LIST_FILE" ] || exit 0
+
+echo -n "I will delete the above-listed packages. Continue [y/N]? "
+read -r DO_DELETE
+
+if [[ "$DO_DELETE" == [yY]* ]]
+then
+    delete_packages_in_file "$ARG_LIST_FILE"
+else
+    printf "Aborted.\n"
+fi
