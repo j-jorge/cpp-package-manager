@@ -87,9 +87,15 @@ delete_packages_in_file()
 
 ARG_LIST_FILE="$(make_temporary_file)"
 
+[ ! -t 1 ] || COLORIZE=1
+
 "$SCRIPT_DIR"/paco-list "${PACO_LIST_ARGS[@]}" \
     | tee "$ARG_LIST_FILE" \
-    | sed "s|^|\\$green|;s|\$|\\$term_color|;s|=|=\\$yellow_bold|g;s| |\\$term_color |g" \
+    | ( \
+        [ -n "$COLORIZE" ] \
+            && sed "s|^|\\$green|;s|\$|\\$term_color|;s|=|=\\$yellow_bold|g;s| |\\$term_color |g" \
+            || cat
+    ) \
     | while read -r LINE
 do
     echo -e "$LINE"
