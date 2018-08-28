@@ -1,7 +1,9 @@
 #!/bin/bash
 
 S3_CONFIG=$(dirname "${BASH_SOURCE[0]}")/s3-credentials.conf
-PACO_S3_BUCKET_ROOT="s3://cpp-packages/paco"
+PACO_S3_ROOT="s3://cpp-packages"
+: "${PACO_S3_BUCKET="paco"}"
+PACO_S3_BUCKET_ROOT="$PACO_S3_ROOT/$PACO_S3_BUCKET"
 
 s3_put()
 {
