@@ -5,10 +5,10 @@ ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
 . "$ISCOOL_INCLUDE_ROOT/options.sh"
 . "$ISCOOL_INCLUDE_ROOT/md5.sh"
 
-INCLUDE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+PACO_INCLUDE_ROOT=$(paco-shell-config)
 
-. "$INCLUDE_ROOT/share/iscoolentertainment/paco/s3.sh"
-. "$INCLUDE_ROOT/share/iscoolentertainment/paco/common.sh"
+. "$PACO_INCLUDE_ROOT/s3.sh"
+. "$PACO_INCLUDE_ROOT/common.sh"
 
 DISABLE_LOCAL=
 DISABLE_REMOTE=

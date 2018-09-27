@@ -1,0 +1,7 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+INCLUDE_ROOT="$SCRIPT_DIR"/..
+
+echo "$INCLUDE_ROOT/share/iscoolentertainment/paco"
+

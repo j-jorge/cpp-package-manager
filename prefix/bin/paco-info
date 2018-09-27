@@ -5,10 +5,9 @@ ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
 . "$ISCOOL_INCLUDE_ROOT/colors.sh"
 . "$ISCOOL_INCLUDE_ROOT/options.sh"
 
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
-INCLUDE_ROOT="$SCRIPT_DIR"/..
+PACO_INCLUDE_ROOT=$(paco-shell-config)
 
-. "$INCLUDE_ROOT/share/iscoolentertainment/paco/common.sh"
+. "$PACO_INCLUDE_ROOT/common.sh"
 
 export PROGRAM_DESCRIPTION="Display information about the installed package."
 
