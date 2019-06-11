@@ -3,6 +3,7 @@
 ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
 
 . "$ISCOOL_INCLUDE_ROOT/options.sh"
+. "$ISCOOL_INCLUDE_ROOT/temporaries.sh"
 
 PACO_INCLUDE_ROOT=$(paco-shell-config)
 
@@ -40,27 +41,23 @@ MANIFEST="$(install_manifest_file "$INSTALL_PREFIX" "$NAME")"
 
 [ -f "$MANIFEST" ] || exit 0
 
-DIRECTORIES=()
-FILES=()
+FILE_LIST="$(make_temporary_file)"
 
 while read -r P
 do
     FULL_PATH="$INSTALL_PREFIX/$P"
     
-    if [ -d "$FULL_PATH" ]
+    if [ ! -d "$FULL_PATH" ]
     then
-        DIRECTORIES+=("$FULL_PATH")
-    else
-        FILES+=("$FULL_PATH")
+        echo "$FULL_PATH" >> "$FILE_LIST"
     fi
 done < "$MANIFEST"
 
-if [ ${#FILES[@]} -ne 0 ]
+if [ -s "$FILE_LIST" ]
 then
-   rm -f "${FILES[@]}"
+    xargs rm -f < "$FILE_LIST"
 fi
 
 rm -f "$MANIFEST"
 
 find "$INSTALL_PREFIX/" -mindepth 1 -type d -empty -delete
-
