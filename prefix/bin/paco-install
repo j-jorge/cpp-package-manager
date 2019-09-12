@@ -1,8 +1,11 @@
 #!/bin/bash
 
+set -e
+
 ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
 
 . "$ISCOOL_INCLUDE_ROOT/options.sh"
+. "$ISCOOL_INCLUDE_ROOT/temporaries.sh"
 
 PACO_INCLUDE_ROOT=$(paco-shell-config)
 
@@ -99,11 +102,11 @@ check_current_installed_version()
     if [ "$INSTALLED_PACKAGE_VERSION" = "$VERSION" ]
     then
         [ -z "$FORCE" ] || return
-        printf "Package '%s' is already installed.\n" "$NAME"
+        printf 'Package "%s" is already installed.\n' "$NAME"
         exit 0
     elif [ -n "$INSTALLED_PACKAGE_VERSION" ]
     then
-        printf "Uninstalling version '%s' of package '%s'.\n" \
+        printf 'Uninstalling version "%s" of package "%s".\n' \
                "$INSTALLED_PACKAGE_VERSION" "$NAME"
         "$SCRIPT_DIR/paco-uninstall" --name="$NAME" --prefix="$INSTALL_PREFIX"
     fi
@@ -119,7 +122,7 @@ IFS=$'\n' read -d '' -r PACKAGE_STATUS LOCAL_PACKAGE_PATH REMOTE_PACKAGE_PATH \
 
 if [ "$PACKAGE_STATUS" = "unknown" ]
 then
-    printf "Cannot find package '%s' in version %s.\n" "$NAME" "$VERSION" >&2
+    printf 'Cannot find package "%s" in version %s.\n' "$NAME" "$VERSION" >&2
     exit 1
 fi
 
@@ -128,5 +131,18 @@ then
     mkdir -p "$(dirname "$LOCAL_PACKAGE_PATH")" || exit 1
     s3_get "$REMOTE_PACKAGE_PATH" "$LOCAL_PACKAGE_PATH" || exit 1
 fi
+
+tar xfO "$LOCAL_PACKAGE_PATH" \
+    "$(install_manifest_file "." "$NAME")" \
+    | while read -r P
+do
+    FULL_PATH="$INSTALL_PREFIX/$P"
+
+    if [ -f "$FULL_PATH" ]
+    then
+        printf 'File "%s" would be overwritten. Aborting.\n' "$FULL_PATH"
+        exit 1
+    fi
+done
 
 tar xf "$LOCAL_PACKAGE_PATH" -C "$INSTALL_PREFIX"
