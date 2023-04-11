@@ -10,6 +10,7 @@ PACO_INCLUDE_ROOT=$(paco-shell-config)
 
 ROOT=
 VERSION=
+REQUIREMENTS=()
 
 set_root()
 {
@@ -33,6 +34,15 @@ set_name()
 register_option '--name=<string>' set_name "The name of the package." \
                 "Guessed from --root"
 
+add_requirements()
+{
+    REQUIREMENTS+=("$@")
+}
+
+register_option '--requires=<string…>' add_requirements \
+                "Packages that must be installed before this one, in the form \
+of name=version."
+
 extract_parameters "$@"
 
 check_option_is_set "--root" "$ROOT"
@@ -52,7 +62,12 @@ mkdir -p "$(dirname "$METADATA")"
 (
     cd "$ROOT"
 
-    printf "Version:%s\n" "$VERSION" > "$METADATA"
+    (
+        printf 'Version:%s\n' "$VERSION"
+        printf 'Requires:'
+        printf '%s,' "${REQUIREMENTS[@]}" | sed 's/,$//'
+        printf '\n'
+    ) > "$METADATA"
     find . -type f -o -type l > "$MANIFEST"
 )
 

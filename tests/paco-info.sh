@@ -36,7 +36,7 @@ paco-install --disable-remote \
              --prefix="$TARGET"
 
 INFO="$(paco-info --prefix="$TARGET" --name="$NAME")"
-EXPECTED="Version:$VERSION"
+EXPECTED="Version:$VERSION"$'\n'"Requires:"
 
 [ "$INFO" = "$EXPECTED" ] || test_failed $LINENO
 

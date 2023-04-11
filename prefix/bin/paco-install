@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 ISCOOL_INCLUDE_ROOT=$(iscool-shell-config --shell-include)
 
@@ -16,9 +16,9 @@ SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 PACO_SHOW_ARGS=()
 INSTALL_PREFIX=
-NAME=
+MAIN_NAME=
 FORCE=
-VERSION=
+MAIN_VERSION=
 
 disable_local()
 {
@@ -62,8 +62,7 @@ register_option '--prefix=<path>' set_install_prefix \
 
 set_name()
 {
-    NAME="$1"
-    PACO_SHOW_ARGS+=("--name=$1")
+    MAIN_NAME="$1"
 }
 
 register_option '--name=<string>' set_name "The name of the package."
@@ -78,8 +77,7 @@ register_option '--platform=<name>' set_platform \
 
 set_version()
 {
-    VERSION="$1"
-    PACO_SHOW_ARGS+=("--version=$1")
+    MAIN_VERSION="$1"
 }
 
 register_option '--version=<string>' set_version "The version of the package."
@@ -90,59 +88,125 @@ check_option_is_set "--prefix" "$INSTALL_PREFIX"
 
 installed_package_version()
 {
+    local NAME="$1"
+
     "$SCRIPT_DIR"/paco-info --name "$NAME" --prefix "$INSTALL_PREFIX" \
         | grep '^Version:' \
         | cut -d: -f2-
 }
 
-check_current_installed_version()
+check_if_already_installed()
 {
-    INSTALLED_PACKAGE_VERSION="$(installed_package_version)"
+    local NAME="$1"
+    local VERSION="$2"
+
+    INSTALLED_PACKAGE_VERSION="$(installed_package_version "$NAME")"
 
     if [ "$INSTALLED_PACKAGE_VERSION" = "$VERSION" ]
     then
-        [ -z "$FORCE" ] || return
-        printf 'Package "%s" is already installed.\n' "$NAME"
-        exit 0
+        [ -z "$FORCE" ] || return 1
+
+        if [[ "$NAME" = "$MAIN_NAME" ]]
+        then
+            printf 'Package "%s" is already installed.\n' "$NAME"
+        fi
+
+        return 0
     elif [ -n "$INSTALLED_PACKAGE_VERSION" ]
     then
         printf 'Uninstalling version "%s" of package "%s".\n' \
                "$INSTALLED_PACKAGE_VERSION" "$NAME"
-        "$SCRIPT_DIR/paco-uninstall" --name="$NAME" --prefix="$INSTALL_PREFIX"
+
+        "$SCRIPT_DIR/paco-uninstall" \
+            --name="$NAME" \
+            --prefix="$INSTALL_PREFIX"
     fi
+
+    return 1
 }
 
-check_current_installed_version
+install_package()
+{
+    local NAME="$1"
+    local VERSION="$2"
 
-IFS=$'\n' read -d '' -r PACKAGE_STATUS LOCAL_PACKAGE_PATH REMOTE_PACKAGE_PATH \
-   <<<"$("$SCRIPT_DIR"/paco-show "${PACO_SHOW_ARGS[@]}" \
+    if check_if_already_installed "$NAME" "$VERSION"
+    then
+        return 1
+    fi
+
+    printf 'Installing package "%s" in version %s.\n' \
+           "$NAME" "$VERSION"
+
+    IFS=$'\n' \
+       read -d '' -r PACKAGE_STATUS LOCAL_PACKAGE_PATH REMOTE_PACKAGE_PATH \
+       <<<"$("$SCRIPT_DIR"/paco-show "${PACO_SHOW_ARGS[@]}" \
+                --version="$VERSION" \
+                --name="$NAME" \
             | cut -d: -f2- \
             | cut -c 2- )" \
-    || true
+        || true
 
-if [ "$PACKAGE_STATUS" = "unknown" ]
-then
-    printf 'Cannot find package "%s" in version %s.\n' "$NAME" "$VERSION" >&2
-    exit 1
-fi
-
-if [ "$PACKAGE_STATUS" != "up-to-date" ]
-then
-    mkdir -p "$(dirname "$LOCAL_PACKAGE_PATH")" || exit 1
-    s3_get "$REMOTE_PACKAGE_PATH" "$LOCAL_PACKAGE_PATH" || exit 1
-fi
-
-tar xfO "$LOCAL_PACKAGE_PATH" \
-    "$(install_manifest_file "." "$NAME")" \
-    | while read -r P
-do
-    FULL_PATH="$INSTALL_PREFIX/$P"
-
-    if [ -f "$FULL_PATH" ]
+    if [ "$PACKAGE_STATUS" = "unknown" ]
     then
-        printf 'File "%s" would be overwritten. Aborting.\n' "$FULL_PATH"
-        exit 1
+        printf 'Cannot find package "%s" in version %s.\n' \
+               "$NAME" "$VERSION" >&2
+        return 2
     fi
-done
 
-tar xf "$LOCAL_PACKAGE_PATH" -C "$INSTALL_PREFIX"
+    if [ "$PACKAGE_STATUS" != "up-to-date" ]
+    then
+        mkdir -p "$(dirname "$LOCAL_PACKAGE_PATH")" || exit 1
+        s3_get "$REMOTE_PACKAGE_PATH" "$LOCAL_PACKAGE_PATH" || exit 1
+    fi
+
+    tar xfO "$LOCAL_PACKAGE_PATH" \
+        "$(install_manifest_file "." "$NAME")" \
+        | while read -r P
+    do
+        FULL_PATH="$INSTALL_PREFIX/$P"
+
+        if [ -f "$FULL_PATH" ]
+        then
+            printf 'File "%s" would be overwritten. Aborting.\n' "$FULL_PATH"
+            return 2
+        fi
+    done
+
+    tar xf "$LOCAL_PACKAGE_PATH" -C "$INSTALL_PREFIX"
+}
+
+extract_requirements()
+{
+    local NAME="$1"
+    local METADATA
+
+    METADATA="$(install_metadata_file "$INSTALL_PREFIX" "$NAME")"
+
+    grep '^Requires:' "$METADATA" \
+        | cut -d ':' -f2- \
+        | tr ',' ' '
+}
+
+PACKAGE_SET=("$MAIN_NAME=$MAIN_VERSION")
+
+for ((I=0; I != "${#PACKAGE_SET[@]}"; ++I))
+do
+    PACKAGE="${PACKAGE_SET[$I]}"
+
+    NAME="${PACKAGE/=*}"
+    VERSION="${PACKAGE/*=}"
+
+    install_package "$NAME" "$VERSION" || true
+
+    case $? in
+        0)
+            PACKAGE_SET+=($(extract_requirements "$NAME"))
+            ;;
+        1)
+            ;;
+        2)
+            exit 1
+            ;;
+    esac
+done
