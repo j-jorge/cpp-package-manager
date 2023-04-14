@@ -1,5 +1,7 @@
 cmake_minimum_required( VERSION 3.1 )
 
+project(cpp-package-manager)
+
 set( source_root "${CMAKE_CURRENT_SOURCE_DIR}/../.." )
 
 execute_process(
