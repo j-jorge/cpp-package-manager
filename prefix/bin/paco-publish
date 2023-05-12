@@ -34,6 +34,16 @@ set_name()
 register_option '--name=<string>' set_name "The name of the package." \
                 "Guessed from --root"
 
+
+add_requirements()
+{
+    ARCHIVE_ARGS+=("--requires=$1")
+}
+
+register_option '--requires=<string…>' add_requirements \
+                "Packages that must be installed before this one, in the form \
+of name=version."
+
 set_flavor()
 {
     UPLOAD_ARGS+=("--flavor=$1")
