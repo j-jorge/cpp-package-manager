@@ -160,9 +160,7 @@ install_package()
         s3_get "$REMOTE_PACKAGE_PATH" "$LOCAL_PACKAGE_PATH" || exit 1
     fi
 
-    tar xfO "$LOCAL_PACKAGE_PATH" \
-        "$(install_manifest_file "." "$NAME")" \
-        | while read -r P
+    while read -r P
     do
         FULL_PATH="$INSTALL_PREFIX/$P"
 
@@ -171,7 +169,8 @@ install_package()
             printf 'File "%s" would be overwritten. Aborting.\n' "$FULL_PATH"
             return 2
         fi
-    done
+    done <<< $(tar xfO "$LOCAL_PACKAGE_PATH" \
+                   "$(install_manifest_file "." "$NAME")")
 
     tar xf "$LOCAL_PACKAGE_PATH" -C "$INSTALL_PREFIX"
 }
