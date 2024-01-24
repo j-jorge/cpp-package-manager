@@ -17,6 +17,8 @@ NAME=
 PLATFORM=
 VERSION=
 
+command -v s3cmd >/dev/null || DISABLE_REMOTE=1
+
 disable_local()
 {
     DISABLE_LOCAL=1

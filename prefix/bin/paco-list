@@ -18,6 +18,8 @@ NAME="*"
 PLATFORM="*"
 VERSION="*"
 
+command -v s3cmd >/dev/null || DISABLE_REMOTE=1
+
 disable_local()
 {
     DISABLE_LOCAL=1
@@ -78,17 +80,17 @@ format_output()
 {
     local LOCATION="$1"
     shift
-    
+
     local LISTED_NAME
     local LISTED_PLATFORM
     local LISTED_FLAVOR
     local FILE_NAME
-    
+
     for P in "$@"
     do
         IFS=/ read -r LISTED_NAME LISTED_PLATFORM LISTED_FLAVOR FILE_NAME \
            <<<"$P"
-        
+
         local LISTED_VERSION
         LISTED_VERSION="$(basename "$FILE_NAME" "$PACO_PACKAGE_EXTENSION" \
                              | cut -d_ -f2)"
@@ -144,7 +146,7 @@ list_remote_packages()
 
     if ( R == "." )
         R = current_R
-    
+
     locations[ $2 ] = L R
 }
 END {

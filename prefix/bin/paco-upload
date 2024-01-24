@@ -15,6 +15,8 @@ DISABLE_LOCAL=
 DISABLE_REMOTE=
 PLATFORM=
 
+command -v s3cmd >/dev/null || DISABLE_REMOTE=1
+
 set_file()
 {
     FILE="$1"
@@ -73,7 +75,7 @@ then
 fi
 
 if [ -z "$DISABLE_REMOTE" ]
-then 
+then
     UPLOAD_PATH="$UPLOAD_DIR/$FILE_NAME"
     s3_put "$FILE" "$UPLOAD_PATH"
 fi
