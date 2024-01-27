@@ -43,20 +43,15 @@ MANIFEST="$(install_manifest_file "$INSTALL_PREFIX" "$NAME")"
 
 FILE_LIST="$(make_temporary_file)"
 
-while read -r P
+while IFS= read -r P
 do
     FULL_PATH="$INSTALL_PREFIX/$P"
-    
+
     if [ ! -d "$FULL_PATH" ]
     then
-        echo "$FULL_PATH" >> "$FILE_LIST"
+        rm -f "$FULL_PATH"
     fi
 done < "$MANIFEST"
-
-if [ -s "$FILE_LIST" ]
-then
-    xargs rm -f < "$FILE_LIST"
-fi
 
 rm -f "$MANIFEST"
 
